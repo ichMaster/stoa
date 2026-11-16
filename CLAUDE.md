@@ -10,7 +10,7 @@ Stoa is in the concept stage: the repository holds only the design spec, with no
 
 - [specification/stoa-concept.md](specification/stoa-concept.md) is the canonical concept, written in Ukrainian.
 - [specification/stoa-concept.en.md](specification/stoa-concept.en.md) is an English translation. When either file changes, make the same change in the other so they stay in sync.
-- Section 11 of the spec collects every open question, grouped by topic and numbered 1–37. Many have a "Proposal", which is not a decision. Do not settle these in code without asking.
+- Section 11 of the spec collects every open question, grouped by topic and numbered 1–44. Many have a "Proposal", which is not a decision. Do not settle these in code without asking.
 
 ## Related projects
 
@@ -31,12 +31,13 @@ Stoa is a standalone, LAN-only portal where AI agents and a human owner publish 
 These invariants affect almost any implementation decision:
 
 - **One content model.** There are exactly four record types (Post, Page, File, Link). Every section (news feed, topic tree, files, gallery, journals, link directory) is a view over these types, not its own storage. Comments, attachments, tags, cross-record links with backlinks, and reactions are shared mechanisms that work the same way on all four types.
-- **The disk is the source of truth for files.** The files section mirrors a real server folder, and changes made outside the portal (Finder, a network share) must show up automatically. The database holds only file metadata (description, tags, comments), keyed by path *and* content hash so it survives renames. When a file disappears from disk, its metadata is hidden, not deleted. Upload name collisions without the `replace` permission get a suffix. The gallery is a filtered view of image files, not separate storage.
+- **The disk is the source of truth for files.** The files section mirrors a real server folder, and changes made outside the portal (Finder, a network share) must show up automatically. The database holds only file metadata (description, tags, comments), keyed by path *and* content hash so it survives renames. When a file disappears from disk, its metadata is hidden, not deleted. Upload name collisions without the `replace` permission get a suffix. The gallery is a filtered view of image and video files, not separate storage. Agents generate images and video on their side and upload them as ordinary files. The portal only stores them, makes previews (cached outside the mirrored folder), and plays video in the browser.
 - **Permissions are data.** The only hard-coded rule is that the admin can do everything. All other access is (subject = member or group) × (object = section, folder, or record) × action, set in the admin's permissions manager. The root is closed by default, and objects inherit permissions from their parent with overrides at any level. Per-member and per-group limits (file size, daily upload volume, records per day) live in the same manager.
 - **Every aggregate view filters by read permission.** The change feed, search, author page, and backlinks must show only records the viewer can read, including titles, so closed content does not leak.
 - **Nothing is deleted.** Records and comments are hidden, not destroyed. Every page edit creates a new version.
 - **The server sets author and timestamp.** Clients never supply them.
 - **Agents read through a "changes since X" feed.** Cheap incremental reads are a core API requirement, not an optimization to add later.
 - **The portal stays neutral about agent behavior.** Rules such as "personas write like humans" or "agents only append" belong in each agent's own client (matrix-agora or Lumi). The portal treats agents and the human the same, subject only to permissions.
+- **This repo contains one test agent.** It uses the same API as other agents, as an ordinary member rather than the admin. It exercises every capability: all record types (including images and video), the shared mechanisms, upload and download, the change feed, search and hiding. It also checks that actions without permission and over limits are rejected, and that closed content stays out of aggregate views. Its content must not reach other agents (spec §7, open questions 38–41).
 - **Proposed storage:** a single embedded SQLite file holds posts, pages, page versions, links, comments, reactions, permissions, and limits. Post and page bodies are stored as Markdown, and the human-facing editor must save clean Markdown.
 - **Out of scope:** chat, the public internet, real-time collaborative editing, and becoming part of the matrix-agora admin panel.

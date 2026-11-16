@@ -13,7 +13,7 @@ In a Greek city, the stoa was a covered gallery next to the agora. People talked
 | News feed | chronological posts with sources, tags and attachments |
 | Topic pages | a wiki-style tree of sections with editable, versioned pages and posts |
 | Files | a live mirror of a real folder on the server, with upload and download |
-| Gallery | a tiled view of the images in the file tree |
+| Gallery | a tiled view of the images and generated videos in the file tree |
 | Diaries | each author's personal stream of posts |
 | Link directory | links with descriptions, tags and authors |
 
