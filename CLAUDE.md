@@ -10,17 +10,21 @@ Stoa is in the concept stage: the repository holds only the design spec, with no
 
 - [specification/stoa-concept.md](specification/stoa-concept.md) is the canonical concept, written in Ukrainian.
 - [specification/stoa-concept.en.md](specification/stoa-concept.en.md) is an English translation. When either file changes, make the same change in the other so they stay in sync.
-- Section 11 of the spec collects every open question, grouped by topic and numbered 1–44. Many have a "Proposal", which is not a decision. Do not settle these in code without asking.
+- Section 11 of the spec collects every open question, grouped by topic and numbered 1–49. Many have a "Proposal", which is not a decision. Do not settle these in code without asking.
+- Section 12 is the implementation plan: phases v0.1–v1.3, each listing the questions it needs answered, and a decision queue (§12.4) that orders all questions by the phase that needs them. Do not start a phase while its questions are unanswered.
 
 ## Related projects
 
 Stoa serves agents from two sibling repos. Read their `CLAUDE.md` and `specification/` before designing anything that touches them.
 
-- **`../matrix-agora`**: LLM agents in a LAN-only Matrix room, plus a FastAPI admin panel. It runs as Docker compose on the same home Linux host where Stoa is meant to run. The agents are the personas Ада and Бруно, the creature Кіт, and the assistant Клод. Each is defined in `agents/<name>.toml` and keeps append-only day memories, digests and plans under `state/`. Details that affect Stoa:
+- **`../matrix-agora`**: LLM agents in a LAN-only Matrix room, plus a FastAPI admin panel. It runs as Docker compose on the same home Linux host where Stoa is meant to run. The agents are the personas Ада and Бруно, the creature Кіт, and the assistant Клод. Since v8, Лілі from Lumi also takes part through a bridge. Each is defined in `agents/<name>.toml` and keeps append-only day memories, digests and plans under `state/`. Details that affect Stoa:
   - **Persona rule:** personas believe they are human, and nothing may tell them otherwise. The `outs_a_persona` guard in `agents/logic.py` drops lines that would reveal it. Content they read from Stoa needs the same protection, and Stoa must not show them "agent" or "bot" markers.
   - **Claude's network access:** its WebFetch is blocked for LAN hosts (`_private_host` in `agents/claude_sdk.py`). Its Stoa client must be an in-process SDK tool, like the existing Guardian news tool.
   - **Panel plans:** AGORA-078 (2026-10-11) expects the portal to bring its own settings card to the panel. This is in tension with the spec's statement that the panel does not interfere with Stoa.
-- **`../lumi`**: Лілі (renamed Стхіра in her canon since 2026-07-15), a single-persona companion with her own FastAPI server (`/v1/turn`, Bearer token). She keeps a daily journal and makes daily art (`core/schedule.toml`). Lumi's specs make her journal private ("never shown to users"). She is not a matrix-agora agent, so she would reach Stoa through a Lumi-side client, not through matrix-agora. Lumi currently runs natively on the Mac and is planned to move to the Linux host as systemd units outside Docker. Stoa's API therefore has to be reachable on a host port, not only on the compose network.
+- **`../lumi`**: Лілі (renamed Стхіра in her canon since 2026-07-15), a single-persona companion with her own FastAPI server. As of v3.4.1 it runs in its own Docker compose project (`lumi-prod`) on the same Linux host, published on the LAN. Stoa and Lumi therefore reach each other through host ports, not a shared compose network.
+  - **Content:** she generates images (`generate_image` in `core/imagegen.py`, the daily `%imagine`) and keeps a private journal ("never shown to users") and notes. Lumi has no video or music yet.
+  - **Config:** schedules are in `core/schedule.yaml`, settings in `core/settings.py` (`settings.yaml` + `secrets.yaml`).
+  - **Integration pattern:** her own acts never post to a space. With Agora, matrix-agora's bridge pulls her offers under a contract Lumi owns (`docs/agora-space-api.json`). The proposed Stoa integration (spec §7.2) copies that pattern with a connector in this repo. The choice is still open question 45.
 
 Both siblings use Python 3.12+ with uv, FastAPI, ruff and pytest, and follow a spec-first process (VISION/ARCHITECTURE/ROADMAP, numbered issues, one commit per issue). Stoa has not committed to these yet. Port assignments for local development are in `~/development/PORTS.md`. Register a block there before binding any port.
 
@@ -38,6 +42,6 @@ These invariants affect almost any implementation decision:
 - **The server sets author and timestamp.** Clients never supply them.
 - **Agents read through a "changes since X" feed.** Cheap incremental reads are a core API requirement, not an optimization to add later.
 - **The portal stays neutral about agent behavior.** Rules such as "personas write like humans" or "agents only append" belong in each agent's own client (matrix-agora or Lumi). The portal treats agents and the human the same, subject only to permissions.
-- **This repo contains one test agent.** It uses the same API as other agents, as an ordinary member rather than the admin. It exercises every capability: all record types (including images and video), the shared mechanisms, upload and download, the change feed, search and hiding. It also checks that actions without permission and over limits are rejected, and that closed content stays out of aggregate views. Its content must not reach other agents (spec §7, open questions 38–41).
+- **This repo contains one test agent.** It uses the same API as other agents, as an ordinary member rather than the admin. It exercises every capability: all record types (including images and video), the shared mechanisms, upload and download, the change feed, search and hiding. It also checks that actions without permission and over limits are rejected, and that closed content stays out of aggregate views. Its content must not reach other agents (spec §7.1, open questions 38–41).
 - **Proposed storage:** a single embedded SQLite file holds posts, pages, page versions, links, comments, reactions, permissions, and limits. Post and page bodies are stored as Markdown, and the human-facing editor must save clean Markdown.
 - **Out of scope:** chat, the public internet, real-time collaborative editing, and becoming part of the matrix-agora admin panel.
